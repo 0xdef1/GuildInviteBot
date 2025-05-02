@@ -312,7 +312,7 @@ async function handleInviteCommand(interaction) {
 
         // Send a DM to the user
         await interaction.user.send({
-            content: `Here is your encrypted invite string: \`\`\`/gi invitation ${invitation}\`\`\``
+            content: `Here is your invitation for ${characterName}. Paste this slash command into your WoW chatbox: \`\`\`/gi invitation ${invitation}\`\`\``
         });
 
         // Reply to the command
