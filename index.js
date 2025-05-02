@@ -263,7 +263,6 @@ client.once('ready', async () => {
 
 // Handle the invite command
 async function handleInviteCommand(interaction) {
-    console.log(interaction)
     try {
         // Check for rate limiting
         const userId = interaction.user.id;
