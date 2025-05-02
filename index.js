@@ -174,13 +174,8 @@ function signMessage(message) {
         jse.setKey(privateKey)
         
         // Sign the message
-        console.log("message", message)
-        console.log("digest", digest(message))
         let raw = new BigInteger(digest(message), 16)
-        console.log("digestraw", raw.toString())
         let sig = jse.getKey().doPrivate(raw)
-        console.log("sig", sig.toString())
-        console.log("sighex", sig.toString(16))
         return sig.toString(16)
     } catch (error) {
         console.error('Signing error:', error);
