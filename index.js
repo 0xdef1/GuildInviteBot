@@ -1,6 +1,5 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder } = require('discord.js');
-const crypto = require('crypto');
 global.window = this // JSEncrypt fails without this
 const JSEncrypt = require('jsencrypt')
 const { createHash } = require("node:crypto")
@@ -148,6 +147,7 @@ const deployCommands = async () => {
             console.log(`Commands registered for guild: ${guild.name}`);
         }
 
+        // Mocktails note: not sure why this is necessary
         // Also register globally (for future servers)
         // await rest.put(
         //     Routes.applicationCommands(process.env.APPLICATION_ID),
@@ -160,11 +160,9 @@ const deployCommands = async () => {
     }
 };
 
-
-
 function signMessage(message) {
     try {
-        // sha256 hash function, lowest 16 bits
+        // sha256 hash function, lowest 128 bits
         let digest = function(msg) {
             let hash = createHash('sha256').update(msg).digest('hex')
             return hash.substring(32)
@@ -191,58 +189,18 @@ function signMessage(message) {
 }
 
 function createInvitation(character, discord, guild) {
-    let expiration = Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+    // Expires 1 hour from now
+    let expiration = Math.floor(Date.now() / 1000) + 3600 
+
+    // Lua-encoded object easy to parse by the addon
     let message = `{{["c"]="${character}",["d"]="${discord}",["g"]="${guild}",["e"]=${expiration}}}`
+
+    // Sign the raw message
     let sig = signMessage(message)
+
+    // Encode both the signature and message into one base64 string
     let invitation = Buffer.from(`${sig}\n${message}`).toString('base64')
     return invitation
-}
-
-// Function to encrypt discord username and timestamp using the PKCS#8 PEM private key
-function encryptMessage(discordUsername, timestamp) {
-    try {
-        const privateKey = process.env.PRIVATE_KEY;
-
-        // Create the message to encrypt
-        const message = `${discordUsername} ${timestamp}`;
-
-        // Generate a random initialization vector
-        const iv = crypto.randomBytes(16);
-
-        // For PKCS#8 format (-----BEGIN PRIVATE KEY-----), 
-        // we'll use it to sign the message first
-        const signer = crypto.createSign('SHA256');
-        signer.update(message);
-        const signature = signer.sign(privateKey, 'hex');
-
-        // Create the full payload to encrypt
-        const payload = JSON.stringify({
-            discordUsername,
-            timestamp,
-            signature
-        });
-
-        // We'll use a derived key from the message for encryption
-        const hmac = crypto.createHmac('sha256', privateKey);
-        hmac.update(message);
-        const derivedKey = hmac.digest().slice(0, 32); // 32 bytes for AES-256
-
-        // Encrypt the payload with AES-256-CBC
-        const cipher = crypto.createCipheriv('aes-256-cbc', derivedKey, iv);
-        let encrypted = cipher.update(payload, 'utf8', 'hex');
-        encrypted += cipher.final('hex');
-
-        // Combine the IV and encrypted data
-        const result = {
-            iv: iv.toString('hex'),
-            data: encrypted
-        };
-
-        return JSON.stringify(result);
-    } catch (error) {
-        console.error('Encryption error:', error);
-        return 'Encryption failed: ' + error.message;
-    }
 }
 
 // When the client is ready, run this code (only once)
@@ -352,12 +310,12 @@ async function handleInviteCommand(interaction) {
 
         console.log(`Processing invite request for ${discordUsername}`);
 
-        // Encrypt the username and timestamp
-        //const encryptedMessage = encryptMessage(discordUsername, timestamp);
 
+        // Create an invitation for the requested character
+        // TODO: Fix hardcoded "Frontier Alpha"
         const characterName = interaction.options.getString('name') ?? 'invalidName';
-
         const invitation = createInvitation(characterName, discordUsername, "Frontier Alpha")
+
         // Send a DM to the user
         await interaction.user.send({
             content: `Here is your encrypted invite string: \`\`\`/gi invitation ${invitation}\`\`\``
