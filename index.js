@@ -176,7 +176,8 @@ function signMessage(message) {
         // Sign the message
         let raw = new BigInteger(digest(message), 16)
         let sig = jse.getKey().doPrivate(raw)
-        return sig.toString(16)
+        let sigHex = sig.toString(16).padStart(64, '0')
+        return sigHex 
     } catch (error) {
         console.error('Signing error:', error);
         return 'Signing failed: ' + error.message;
